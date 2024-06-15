@@ -5,8 +5,8 @@ const router = Router();
 
 // -------------------SOLICITUDES HTTP
 
-// Ejemplo de una ruta que consulta la base de datos
-router.get("/users", async (req, res) => {
+// Obtener todos los usuarios
+router.get("/usuarios", async (req, res) => {
     try {
         const [rows, fields] = await db.query("SELECT * FROM user");
         res.json(rows);
@@ -16,72 +16,108 @@ router.get("/users", async (req, res) => {
     }
 });
 
-// Obtener todos los usuarios
-router.get("/usuarios", async (req, res) => {
-    res.json(usuarios);
-});
-
 // Buscar un usuario por id
-router.get("/usuarios/:id", (req, res) => {
+router.get("/usuarios/:id", async (req, res) => {
     const { id } = req.params;
 
-    res.json(usuarios.find((usuario) => usuario.id === Number(id)));
+    try {
+        const [rows, fields] = await db.query(
+            "SELECT * FROM user WHERE user_id = ?",
+            [id]
+        );
+
+        if (rows.length > 0) {
+            res.json(rows[0]); // Devolver el primer resultado encontrado
+        } else {
+            res.status(404).json({ error: "Usuario no encontrado" });
+        }
+    } catch (error) {
+        console.error("Error al buscar usuario por id:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
 });
 
 // Buscar un usuario por numero de competidor
-router.get("/usuarios/numeroCompetidor/:num", (req, res) => {
+router.get("/usuarios/numeroCompetidor/:num", async (req, res) => {
     const { num } = req.params;
 
-    const usuarioEncontrado = usuarios.find(
-        (usuario) => usuario.numeroCompetidor === num
-    );
+    try {
+        const [rows, fields] = await db.query(
+            "SELECT * FROM user WHERE competitorNum = ?",
+            [num]
+        );
 
-    if (usuarioEncontrado) {
-        res.json(usuarioEncontrado);
-    } else {
-        res.status(404).json({
-            error: "El usuario por numero de competidor no fue encontrado",
-        });
+        if (rows.length > 0) {
+            res.json(rows[0]); // Devolver el primer resultado encontrado
+        } else {
+            res.status(404).json({
+                error: "Usuario por número de competidor no encontrado",
+            });
+        }
+    } catch (error) {
+        console.error(
+            "Error al buscar usuario por número de competidor:",
+            error
+        );
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 });
 
 // Crear un nuevo usuario
-router.post("/usuarios", (req, res) => {
+router.post("/usuarios", async (req, res) => {
     const nuevoUsuario = req.body;
-    usuarios.push(nuevoUsuario);
-    res.status(201).json(nuevoUsuario);
+
+    try {
+        const result = await db.query("INSERT INTO user SET ?", [nuevoUsuario]);
+        nuevoUsuario.id = result[0].insertId; // Obtener el ID del usuario insertado
+
+        res.status(201).json(nuevoUsuario);
+    } catch (error) {
+        console.error("Error al crear nuevo usuario:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
 });
 
 // Actualizar usuarios por id
-router.put("/usuarios/:id", (req, res) => {
+router.put("/usuarios/:id", async (req, res) => {
     const { id } = req.params;
     const usuarioActualizado = req.body;
 
-    // Buscar el índice del usuario que se quiere actualizar
-    const indiceUsuario = usuarios.findIndex(
-        (usuario) => usuario.id === parseInt(id)
-    );
+    try {
+        const result = await db.query("UPDATE user SET ? WHERE user_id = ?", [
+            usuarioActualizado,
+            id,
+        ]);
 
-    if (indiceUsuario !== -1) {
-        // Actualizar el usuario en la lista de usuarios
-        usuarios[indiceUsuario] = {
-            ...usuarios[indiceUsuario], // Mantener las propiedades originales del usuario
-            ...usuarioActualizado, // Sobrescribir con las propiedades actualizadas
-        };
-
-        res.json(usuarios[indiceUsuario]); // Responder con el usuario actualizado
-    } else {
-        res.status(404).json({ error: "Usuario no encontrado" });
+        if (result[0].affectedRows > 0) {
+            res.json({ ...usuarioActualizado, id: parseInt(id) });
+        } else {
+            res.status(404).json({ error: "Usuario no encontrado" });
+        }
+    } catch (error) {
+        console.error("Error al actualizar usuario por id:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 });
 
 // Eliminar un usuario
-router.delete("/usuarios/:id", (req, res) => {
+router.delete("/usuarios/:id", async (req, res) => {
     const { id } = req.params;
 
-    // Filtrar la lista de usuarios para excluir al usuario con el ID especificado
-    usuarios = usuarios.filter((usuario) => usuario.id !== parseInt(id));
-    res.status(204); // Respondemos con un código de estado 204 (No Content)
+    try {
+        const result = await db.query("DELETE FROM user WHERE user_id = ?", [
+            id,
+        ]);
+
+        if (result[0].affectedRows > 0) {
+            res.status(204).send();
+        } else {
+            res.status(404).json({ error: "Usuario no encontrado" });
+        }
+    } catch (error) {
+        console.error("Error al eliminar usuario por id:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
 });
 
 //module.exports = router;

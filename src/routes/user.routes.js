@@ -1,48 +1,20 @@
 import { Router } from "express";
+import db from "../../db.js"; // Asegúrate de incluir la extensión '.js'
 
 const router = Router();
 
-//----------------------DATOS DE PRUEBA
-let usuarios = [
-    {
-        id: 1,
-        numeroCompetidor: "001",
-        nombre: "Juan",
-        apellido: "Perez",
-        rh: "O+",
-        alergias: ["Polen", "Mariscos"],
-        contactos: ["123456789", "correo@example.com"],
-        vehiculo: "Toyota",
-        placa: "ABC123",
-        imagenCompetidor: "",
-    },
-    {
-        id: 2,
-        numeroCompetidor: "002",
-        nombre: "María",
-        apellido: "Gómez",
-        rh: "A-",
-        alergias: [],
-        contactos: ["987654321", "otrocorreo@example.com"],
-        vehiculo: "Honda",
-        placa: "XYZ789",
-        imagenCompetidor: "",
-    },
-    {
-        id: 3,
-        numeroCompetidor: "003",
-        nombre: "Carlos",
-        apellido: "Martínez",
-        rh: "B+",
-        alergias: ["Maní"],
-        contactos: ["555555555", "contacto@correo.com"],
-        vehiculo: "Chevrolet",
-        placa: "DEF456",
-        imagenCompetidor: "",
-    },
-];
-
 // -------------------SOLICITUDES HTTP
+
+// Ejemplo de una ruta que consulta la base de datos
+router.get("/users", async (req, res) => {
+    try {
+        const [rows, fields] = await db.query("SELECT * FROM user");
+        res.json(rows);
+    } catch (err) {
+        console.error("Database query error:", err);
+        res.status(500).send("Error al obtener los usuarios");
+    }
+});
 
 // Obtener todos los usuarios
 router.get("/usuarios", async (req, res) => {

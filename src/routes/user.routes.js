@@ -78,6 +78,135 @@ router.post("/usuarios", async (req, res) => {
     }
 });
 
+// Crear un nuevo usuario completo-------------------------------------------
+
+router.post("/usuarioCompleto", async (req, res) => {
+    const {
+        competitorNum,
+        name,
+        lastname,
+        rh,
+        eps,
+        competitorImage,
+        vehicle,
+        contacts,
+        allergies,
+    } = req.body;
+
+    // Validación de contactos
+    if (!contacts || contacts.length < 1 || contacts.length > 2) {
+        return res
+            .status(400)
+            .json({ error: "Se debe proporcionar entre 1 y 2 contactos." });
+    }
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // Comprobar si competitorNum ya existe
+        const [existingCompetitor] = await connection.query(
+            "SELECT * FROM user WHERE competitorNum = ?",
+            [competitorNum]
+        );
+        if (existingCompetitor.length > 0) {
+            return res
+                .status(400)
+                .json({ error: "El número de competidor ya existe." });
+        }
+
+        // Comprobar si plate ya existe (si se proporcionó plate y no está vacía)
+        if (vehicle && vehicle.plate && vehicle.plate.trim() !== "") {
+            if (vehicle.plate.length > 6) {
+                return res.status(400).json({
+                    error: "La placa del vehículo no puede tener más de 6 caracteres.",
+                });
+            }
+            const [existingPlate] = await connection.query(
+                "SELECT * FROM vehicle WHERE plate = ?",
+                [vehicle.plate]
+            );
+            if (existingPlate.length > 0) {
+                return res
+                    .status(400)
+                    .json({ error: "La placa del vehículo ya existe." });
+            }
+        }
+
+        // Insertar el usuario
+        const [userResult] = await connection.query(
+            `INSERT INTO user (competitorNum, name, lastname, rh, eps, competitorImage, vehicle_id) 
+             VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+            [competitorNum, name, lastname, rh, eps, competitorImage]
+        );
+        const userId = userResult.insertId;
+
+        // Insertar el vehículo asociado al usuario (si hay datos de vehículo)
+        let vehicleId = null;
+        if (
+            vehicle &&
+            (vehicle.vehicleReference ||
+                vehicle.plate ||
+                vehicle.numberPolicySoat ||
+                vehicle.certificateNumberRTM ||
+                vehicle.allRisk ||
+                vehicle.vehicleImage)
+        ) {
+            const [vehicleResult] = await connection.query(
+                `INSERT INTO vehicle (vehicleReference, plate, numberPolicySoat, certificateNumberRTM, allRisk, vehicleImage, user_id) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    vehicle.vehicleReference,
+                    vehicle.plate,
+                    vehicle.numberPolicySoat,
+                    vehicle.certificateNumberRTM,
+                    vehicle.allRisk,
+                    vehicle.vehicleImage,
+                    userId,
+                ]
+            );
+            vehicleId = vehicleResult.insertId;
+
+            // Actualizar el vehicle_id en la tabla user
+            await connection.query(
+                `UPDATE user SET vehicle_id = ? WHERE user_id = ?`,
+                [vehicleId, userId]
+            );
+        }
+
+        // Insertar contactos para el usuario
+        for (const contact of contacts) {
+            await connection.query(
+                `INSERT INTO contact (user_id, contact_reference, contact_info) VALUES (?, ?, ?)`,
+                [userId, contact.reference, contact.info]
+            );
+        }
+
+        // Insertar alergias para el usuario (si hay alergias)
+        if (allergies && allergies.length > 0) {
+            for (const allergy of allergies) {
+                await connection.query(
+                    `INSERT INTO allergy (user_id, allergy_info) VALUES (?, ?)`,
+                    [userId, allergy.info]
+                );
+            }
+        }
+
+        await connection.commit();
+        res.status(201).json({
+            message: "Usuario creado exitosamente",
+            userId,
+            vehicleId,
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error al crear el usuario:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    } finally {
+        connection.release();
+    }
+});
+
 // Actualizar usuarios por id
 router.put("/usuarios/:id", async (req, res) => {
     const { id } = req.params;

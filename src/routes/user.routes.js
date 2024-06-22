@@ -37,18 +37,39 @@ router.get("/usuarios/:id", async (req, res) => {
     }
 });
 
-// Buscar un usuario por numero de competidor
+// Buscar un usuario por número de competidor
 router.get("/usuarios/numeroCompetidor/:num", async (req, res) => {
     const { num } = req.params;
 
     try {
-        const [rows, fields] = await db.query(
+        // Consulta para obtener el usuario por número de competidor
+        const [userRows, userFields] = await db.query(
             "SELECT * FROM user WHERE competitorNum = ?",
             [num]
         );
 
-        if (rows.length > 0) {
-            res.json(rows[0]); // Devolver el primer resultado encontrado
+        if (userRows.length > 0) {
+            const user = userRows[0];
+            const userId = user.user_id;
+
+            // Consulta para obtener las alergias del usuario
+            const [allergyRows, allergyFields] = await db.query(
+                "SELECT * FROM safty_tq_db.allergy WHERE user_id = ?",
+                [userId]
+            );
+
+            // Consulta para obtener los contactos del usuario
+            const [contactRows, contactFields] = await db.query(
+                "SELECT * FROM safty_tq_db.contact WHERE user_id = ?",
+                [userId]
+            );
+
+            // Añadir las alergias y contactos al objeto del usuario
+            user.allergies = allergyRows;
+            user.contacts = contactRows;
+
+            // Devolver el usuario con las alergias y contactos
+            res.json(user);
         } else {
             res.status(404).json({
                 error: "Usuario por número de competidor no encontrado",
@@ -64,7 +85,7 @@ router.get("/usuarios/numeroCompetidor/:num", async (req, res) => {
 });
 
 // Crear un nuevo usuario
-router.post("/usuarios", async (req, res) => {
+router.post("/staffcontrol/usuarios", async (req, res) => {
     const nuevoUsuario = req.body;
 
     try {
@@ -78,9 +99,26 @@ router.post("/usuarios", async (req, res) => {
     }
 });
 
+// Crear un nuevo usuario
+router.post("/staffcontrol/vehiculos", async (req, res) => {
+    const nuevoVehiculo = req.body;
+
+    try {
+        const result = await db.query("INSERT INTO vehicle SET ?", [
+            nuevoVehiculo,
+        ]);
+        nuevoVehiculo.id = result[0].insertId; // Obtener el ID del usuario insertado
+
+        res.status(201).json(nuevoVehiculo);
+    } catch (error) {
+        console.error("Error al crear nuevo vehiculo:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
 // Crear un nuevo usuario completo-------------------------------------------
 
-router.post("/usuarioCompleto", async (req, res) => {
+router.post("/staffcontrol/usuarioCompleto", async (req, res) => {
     const {
         competitorNum,
         name,
@@ -208,7 +246,7 @@ router.post("/usuarioCompleto", async (req, res) => {
 });
 
 // Actualizar usuarios por id
-router.put("/usuarios/:id", async (req, res) => {
+router.put("/staffcontrol/usuarios/:id", async (req, res) => {
     const { id } = req.params;
     const usuarioActualizado = req.body;
 
@@ -230,7 +268,7 @@ router.put("/usuarios/:id", async (req, res) => {
 });
 
 // Eliminar un usuario
-router.delete("/usuarios/:id", async (req, res) => {
+router.delete("/staffcontrol/usuarios/:id", async (req, res) => {
     const { id } = req.params;
 
     try {

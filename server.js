@@ -22,7 +22,7 @@ app.use("/api", vehiclesRoutes);
 
 // Ruta básica
 app.get("/", (req, res) => {
-    res.send("¡Hola, Trepadores Quindio!");
+    res.send("¡Hola, Trepadores!");
 });
 
 // Iniciar el servidor

@@ -6,7 +6,7 @@ const router = Router();
 
 // Obtener todos los vehiculos
 router.get("/vehiculos", (req, res) => {
-    res.json(vehiculos);
+    res.json("Vehiculosssss");
 });
 
 // Buscar un vehiculo por id de usuario

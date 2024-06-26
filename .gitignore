@@ -3,4 +3,4 @@ package-lock.json
 
 /createBD.txt
 
-/.env
+.env*

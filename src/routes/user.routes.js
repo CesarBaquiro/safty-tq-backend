@@ -37,6 +37,30 @@ router.get("/usuarios/:id", async (req, res) => {
     }
 });
 
+//SELECT user_id FROM user WHERE user_id = 888
+router.get("/validateRealTime/userExist/:numCompetitor", async (req, res) => {
+    const { numCompetitor } = req.params;
+    try {
+        const [rows, fields] = await db.query(
+            "SELECT competitorNum FROM user WHERE competitorNum = ?;",
+            [numCompetitor]
+        );
+
+        if (rows.length > 0) {
+            res.json({
+                res: true,
+            }); // El numero de competidor no existe
+        } else {
+            res.json({
+                res: false,
+            }); // El numero de competidor si existe
+        }
+    } catch (error) {
+        console.error("Error al buscar usuario por competidor:", error);
+        res.status(500).json({ error: "Error interno del servidor" });
+    }
+});
+
 // Buscar un usuario por número de competidor
 router.get("/usuarios/numeroCompetidor/:num", async (req, res) => {
     const { num } = req.params;
@@ -99,7 +123,7 @@ router.post("/staffcontrol/usuarios", async (req, res) => {
     }
 });
 
-// Crear un nuevo usuario
+// Crear un nuevo vehiculo
 router.post("/staffcontrol/vehiculos", async (req, res) => {
     const nuevoVehiculo = req.body;
 
@@ -181,15 +205,7 @@ router.post("/staffcontrol/usuarioCompleto", async (req, res) => {
 
         // Insertar el vehículo asociado al usuario (si hay datos de vehículo)
         let vehicleId = null;
-        if (
-            vehicle &&
-            (vehicle.vehicleReference ||
-                vehicle.plate ||
-                vehicle.numberPolicySoat ||
-                vehicle.certificateNumberRTM ||
-                vehicle.allRisk ||
-                vehicle.vehicleImage)
-        ) {
+        if (vehicle && vehicle.vehicleReference) {
             const [vehicleResult] = await connection.query(
                 `INSERT INTO vehicle (vehicleReference, plate, numberPolicySoat, certificateNumberRTM, allRisk, vehicleImage, user_id) 
                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -198,6 +214,7 @@ router.post("/staffcontrol/usuarioCompleto", async (req, res) => {
                     vehicle.plate,
                     vehicle.numberPolicySoat,
                     vehicle.certificateNumberRTM,
+                    //Se envia un dato binario a la db
                     vehicle.allRisk,
                     vehicle.vehicleImage,
                     userId,

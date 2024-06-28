@@ -42,7 +42,7 @@ router.get("/validateRealTime/userExist/:numCompetitor", async (req, res) => {
     const { numCompetitor } = req.params;
     try {
         const [rows, fields] = await db.query(
-            "SELECT competitorNum FROM user WHERE competitorNum = ?;",
+            "SELECT competitor_num FROM user WHERE competitor_num = ?;",
             [numCompetitor]
         );
 
@@ -68,7 +68,7 @@ router.get("/usuarios/numeroCompetidor/:num", async (req, res) => {
     try {
         // Consulta para obtener el usuario por número de competidor
         const [userRows, userFields] = await db.query(
-            "SELECT * FROM user WHERE competitorNum = ?",
+            "SELECT * FROM user WHERE competitor_num = ?",
             [num]
         );
 
@@ -149,6 +149,7 @@ router.post("/staffcontrol/usuarioCompleto", async (req, res) => {
         lastname,
         rh,
         eps,
+        dataProcessingConsent,
         competitorImage,
         vehicle,
         contacts,
@@ -162,13 +163,20 @@ router.post("/staffcontrol/usuarioCompleto", async (req, res) => {
             .json({ error: "Se debe proporcionar entre 1 y 2 contactos." });
     }
 
+    // Validación de contactos
+    if (!dataProcessingConsent || dataProcessingConsent != 1) {
+        return res.status(400).json({
+            error: "El competidor debe aceptar las politicas de tratamiento de datos.",
+        });
+    }
+
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
         // Comprobar si competitorNum ya existe
         const [existingCompetitor] = await connection.query(
-            "SELECT * FROM user WHERE competitorNum = ?",
+            "SELECT * FROM user WHERE competitor_num = ?",
             [competitorNum]
         );
         if (existingCompetitor.length > 0) {
@@ -197,9 +205,17 @@ router.post("/staffcontrol/usuarioCompleto", async (req, res) => {
 
         // Insertar el usuario
         const [userResult] = await connection.query(
-            `INSERT INTO user (competitorNum, name, lastname, rh, eps, competitorImage, vehicle_id) 
-             VALUES (?, ?, ?, ?, ?, ?, NULL)`,
-            [competitorNum, name, lastname, rh, eps, competitorImage]
+            `INSERT INTO user (competitor_num, name, lastname, rh, eps, data_processing_consent, competitor_image, vehicle_id) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+            [
+                competitorNum,
+                name,
+                lastname,
+                rh,
+                eps,
+                dataProcessingConsent,
+                competitorImage,
+            ]
         );
         const userId = userResult.insertId;
 
@@ -207,7 +223,7 @@ router.post("/staffcontrol/usuarioCompleto", async (req, res) => {
         let vehicleId = null;
         if (vehicle && vehicle.vehicleReference) {
             const [vehicleResult] = await connection.query(
-                `INSERT INTO vehicle (vehicleReference, plate, numberPolicySoat, certificateNumberRTM, allRisk, vehicleImage, user_id) 
+                `INSERT INTO vehicle (vehicle_reference, plate, number_policy_soat, certificate_number_rtm, all_risk, vehicle_image, user_id) 
                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     vehicle.vehicleReference,

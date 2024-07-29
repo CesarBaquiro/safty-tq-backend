@@ -2,6 +2,7 @@ import express from "express";
 import usersRoutes from "./src/routes/user.routes.js";
 import vehiclesRoutes from "./src/routes/vehicles.routes.js";
 import cors from "cors";
+import { DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD } from "./config.js";
 
 const app = express();
 
@@ -27,5 +28,17 @@ app.get("/", (req, res) => {
 
 // Iniciar el servidor
 app.listen(PORT, () => {
-    console.log(`Server running on Port http://localhost:${PORT}`);
+    console.log(
+        "host:",
+        DB_HOST,
+        "port:",
+        DB_PORT,
+        "user:",
+        DB_USER,
+        "password:",
+        DB_PASSWORD,
+        "database:",
+        DB_NAME
+    );
+    //    console.log(`Server running on Port http://localhost:${PORT}`);
 });

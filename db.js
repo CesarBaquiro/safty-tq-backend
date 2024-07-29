@@ -16,17 +16,4 @@ const db = mysql2.createPool({
     queueLimit: 0,
 });
 
-console.log(
-    "host:",
-    DB_HOST,
-    "port:",
-    DB_PORT,
-    "user:",
-    DB_USER,
-    "password:",
-    DB_PASSWORD,
-    "database:",
-    DB_NAME
-);
-
 export default db;

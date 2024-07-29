@@ -28,17 +28,6 @@ app.get("/", (req, res) => {
 
 // Iniciar el servidor
 app.listen(PORT, () => {
-    console.log(
-        "host:",
-        DB_HOST,
-        "port:",
-        DB_PORT,
-        "user:",
-        DB_USER,
-        "password:",
-        DB_PASSWORD,
-        "database:",
-        DB_NAME
-    );
+    console.log("Backend flying");
     //    console.log(`Server running on Port http://localhost:${PORT}`);
 });
